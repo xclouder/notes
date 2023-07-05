@@ -1,0 +1,42 @@
+@startuml 
+' templates
+' abstract        abstract
+' abstract class  "abstract class"
+' annotation      annotation
+' circle          circle
+' ()              circle_short_form
+' class           class
+' diamond         diamond
+' <>              diamond_short_form
+' entity          entity
+' enum            enum
+' interface       interface
+' protocol        protocol
+' struct          struct
+
+
+' start >>>
+struct          FArchiveState
+class           FArchive
+class           FArchiveUObject
+class           FArchiveObjectCrc32
+
+FArchiveState <|-- FArchive
+FArchive <|-- FArchiveUObject
+FArchiveUObject <|-- FArchiveObjectCrc32
+
+
+class           UObjectBase
+class           UObjectBaseUtility
+class           UObject{
+    +bool UObject::CustomSerialize(UObject Obj)
+    +void Serialize(FArchive& Archive)
+}
+
+UObjectBase <|-- UObjectBaseUtility
+UObjectBaseUtility <|-- UObject
+
+
+@enduml
+
+
