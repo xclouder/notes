@@ -20,22 +20,60 @@ struct          FArchiveState
 class           FArchive
 class           FArchiveUObject
 class           FArchiveObjectCrc32
+class           FAsyncArchive
 
 FArchiveState <|-- FArchive
 FArchive <|-- FArchiveUObject
 FArchiveUObject <|-- FArchiveObjectCrc32
-
+FArchive <|-- FAsyncArchive
 
 class           UObjectBase
 class           UObjectBaseUtility
 class           UObject{
     +bool UObject::CustomSerialize(UObject Obj)
     +void Serialize(FArchive& Archive)
+    +void Serialize(FStructuredArchiveRecord& Record)
 }
 
 UObjectBase <|-- UObjectBaseUtility
 UObjectBaseUtility <|-- UObject
 
+
+class FStructuredArchiveRecord {}
+
+class FLinkerTables {}
+class FLinker {}
+class FLinkerLoad {}
+
+FLinkerTables <|-- FLinker
+FLinker <|-- FLinkerLoad
+FArchiveUObject <|-- FLinkerLoad
+
+
+
+' ========== UPackage Save ===============
+class FPackageIndex {}
+note left: Wrapper for index into a ULnker's ImportMap or ExportMap
+
+struct FObjectResource {
+    +ObjectName:FName
+    +OuterIndex:FPackageIndex
+}
+FPackageIndex<--* FObjectResource
+
+struct FObjectImport {
+
+}
+
+struct FObjectExport {}
+
+FObjectResource <|-- FObjectImport
+FObjectResource <|-- FObjectExport
+
+
+' PackageHarvester
+class class FPackageHarvester{}
+FArchiveUObject <|-- FPackageHarvester
 
 @enduml
 

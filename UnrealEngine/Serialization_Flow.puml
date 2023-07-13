@@ -1,0 +1,16 @@
+@startuml UObjectSerialization
+
+start
+
+:GetUnderlyingArchive;
+if (ClassHasFlag:RF_NeedLoad?) then (yes)
+    :Archive.Preload(ObjClass.CDO);
+    note left: preloads any resource that needs, and let the object be a valid state.
+endif
+
+
+
+
+end
+
+@enduml

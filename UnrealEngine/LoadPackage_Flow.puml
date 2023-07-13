@@ -1,0 +1,109 @@
+@startuml UObjectSerialization
+
+start
+
+:UObjectGlobals::StaticLoadObject;
+:UObjectGlobals::StaticLoadObjectInternal;
+    :ResolveName;
+    partition ResolveName{
+        :ConstructorHelpers::StripObjectClass( InOutName );
+        note right: trip off class partition in path. Ex:\n 'BlueprintClass XXX:/Game/Path/to/asset' stripped to\n'/Game/Path/to/asset'
+
+        while (true)
+            :Find subobjectName in Path;
+
+            if (!bSubobjectPath) then (true)
+                :ScriptPackageName = FindScriptPackageName(PartialName);
+                if (ScriptPackageName) then
+                    :PartialName = ScriptPackageName.ToString();
+                endif;
+
+                :bIsScriptPackage = ScriptPackageName || FPackageName::IsScriptPackage(PartialName);
+            endif;
+
+
+            :Process Package Redirects before calling CreatePackage/FindObject;
+
+            if (!Create) then (true)
+                :NewPackage = FindObject<UPackage>(InPackage, PartialName);
+
+                if (!NewPackage) then (true)
+                    if (InPackage) then
+                        :NewPackage = FindObject<UObject>(InPackage, PartialName);
+                    else (false)
+                        :NewPackage = FindFirstObject<UObject>(PartialName, ...);
+                    endif;
+
+                    if (!NewPackage) then 
+                        :return bSubobjectPath;
+                        ' here returned ResolveName, how to draw this
+                    endif;
+                endif;
+
+                :InPackage = NewPackage;
+
+            elseif (!IsShortPackageName(PartialName)) then (true)
+                :InPackage = StaticFindObjectFast(UPackage::StaticClass(), InPackage, *PartialName);
+                if (!bIsScriptPackage && !InPackage) then (true)
+                    :InPackage = LoadPackage(out InPackage, ...);
+                    partition LoadPackage {
+                        :...;
+                        :LoadPackageInternal;
+                        :LoadContext = FUObjectThreadContext::Get().GetSerializeContext();
+                        :BeginLoad;
+                        :FUObjectSerializeContext* InOutLoadContext = LoadContext;
+                        :Linker = GetPackageLinker(InOuter, PackagePath, LoadFlags, nullptr, InReaderOverride, &InOutLoadContext, ImportLinker, InstancingContext);
+                        ' //TODO:
+                    }
+                endif;
+
+                if (!InPackage) then
+                    :InPackage = CreatePackage(*PartialName);
+                    if (bIsScriptPackage) then
+                        :Cast<UPackage>(InPackage)->SetPackageFlags(PKG_CompiledIn);
+                    endif;
+                endif;
+
+                :InOutName.RemoveAt(0, DotIndex + 1, false);
+            endif;
+        endwhile;
+
+
+    }
+
+    if (InOuter?) then (true)
+        :StaticFindObjectFast;
+        if (Result hasAnyFlags(NeedLoad, NeedPostLoad, NeedPostLoadSubObjects, WillBeLoaded)) then (yes)
+            :Result set to Null;
+        endif;
+
+        if (!Result) then (true)
+            if (!InOuter->Outermost->HasAnyPackageFlags(CompiledIn)) then (true)
+                :LoadPackage()
+            endif;
+        endif;
+        
+        :Result = StaticFindObjectFast();
+        note right: Try to find the package in memory first, \nshould be faster than attempting to load or create
+        
+        if (EDL enabled && Result->HasFlags(NeedLoad, NeedPostLoad, NeedPostLoadSubobjects, WillBeLoaded)) then
+            :Log Fatal:Retrun an object still need loading from StaticLoadObjectInternal;
+        endif;
+
+        if (!Result) then (true)
+            :Check for Redirector;
+        endif;
+    endif;
+
+    if (!Result && !bContainsObjectName) then (true)
+        :Assume passed in a short PackageName,process it;
+    else (false)
+        if (WITH_EDITORONLY_DATA micro enabled) then
+            :Result->GetOutermost()->SetLoadedByEditorPropertiesOnly(false); 
+        endif;
+    endif;
+
+    :return Result;
+end
+
+@enduml

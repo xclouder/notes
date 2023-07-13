@@ -1,0 +1,32 @@
+@startuml UObjectSerialization
+
+start
+:UPackage::Save;
+:Construct SaveContext;
+:ValidatePackage;
+:EnsurePackageLocalization;
+:PreSavePackage;
+:BeginCachePlatformCookedData;
+:InnerSave;
+partition InnerSave{
+    :Construct SerializeContext;
+    :HarvestPackage;
+    partition Harvest {
+        :TryHarvestExport;
+        :ProcessExport;
+        :TryHarvestImport;
+        :ExportObject:Serialize;
+        :HarvestDependencies;
+        
+    }
+    
+    :ValidateRealms;
+    partition ValidateRealms {
+
+    }
+}
+:ClearCachedPlatformCookedData;
+:PostSavePackage;
+end
+
+@enduml
